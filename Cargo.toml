@@ -1,0 +1,14 @@
+[package]
+name = "advent_of_code_2016"
+version = "0.1.0"
+authors = ["Michael Aaron Murphy <mmstickman@gmail.com>"]
+
+[[bin]]
+name = "day_01"
+path = "src/01/main.rs"
+
+[profile.release]
+lto = true
+opt-level = 3
+
+[dependencies]
