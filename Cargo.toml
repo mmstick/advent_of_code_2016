@@ -7,6 +7,10 @@ authors = ["Michael Aaron Murphy <mmstickman@gmail.com>"]
 name = "day_01"
 path = "src/01/main.rs"
 
+[[bin]]
+name = "day_02"
+path = "src/02/main.rs"
+
 [profile.release]
 lto = true
 opt-level = 3

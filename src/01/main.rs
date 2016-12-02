@@ -80,13 +80,16 @@ fn calculate_distance_from_hq(inputs: &str) -> ((isize, isize), isize) {
             return (collision, collision.0.abs() + collision.1.abs());
         }
     }
+
     (position, position.0.abs() + position.1.abs())
 }
 
 fn main() {
     let inputs = include_str!("input.txt");
+
     let (position, distance) = calculate_distance_for_final_point(&inputs[0..inputs.len()-1]);
     println!("The last point is at ({}, {}), which is {} blocks away.", position.0, position.1, distance);
+    
     let (position, distance) = calculate_distance_from_hq(&inputs[0..inputs.len()-1]);
     println!("The Easter Bunny HQ is at ({}, {}), which is {} blocks away.", position.0, position.1, distance);
 }
