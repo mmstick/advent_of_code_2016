@@ -11,6 +11,10 @@ path = "src/01/main.rs"
 name = "day_02"
 path = "src/02/main.rs"
 
+[[bin]]
+name = "day_03"
+path = "src/03/main.rs"
+
 [profile.release]
 lto = true
 opt-level = 3
