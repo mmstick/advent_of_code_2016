@@ -1,3 +1,5 @@
+#![feature(alloc_system)]
+extern crate alloc_system;
 extern crate arrayvec;
 
 use std::cmp::Ordering::{Less, Greater};
@@ -11,7 +13,7 @@ use arrayvec::ArrayVec;
 struct Frequency { key: u8, value: u8 }
 
 /// A map of character frequencies
-struct FrequencyMap { data: Vec<Frequency> }
+struct FrequencyMap { data: ArrayVec<[Frequency; 26]> }
 
 impl FrequencyMap {
     /// If key exists, increment it, else add it to the map
@@ -22,7 +24,6 @@ impl FrequencyMap {
                 return
             }
         }
-        self.data.push(Frequency{ key: key, value: 1 });
     }
 
     /// Sort the frequency map by the greater number of occurrences first, and alphabetical order second.
@@ -41,7 +42,9 @@ impl FrequencyMap {
 
 impl<'a> From<&'a str> for FrequencyMap {
     fn from(name: &'a str) -> FrequencyMap {
-        let mut freqmap = FrequencyMap { data: Vec::with_capacity(name.len()) };
+        let mut freqmap = FrequencyMap {
+            data: (b'a'..b'z' + 1).map(|c| Frequency { key: c, value: 0 }).collect::<ArrayVec<[_; 26]>>()
+        };
         for character in name.bytes().filter(|&x| x != b'-') { freqmap.increment_key(character); }
         freqmap
     }
