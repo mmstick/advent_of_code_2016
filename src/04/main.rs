@@ -1,6 +1,11 @@
+extern crate arrayvec;
+
 use std::cmp::Ordering::{Less, Greater};
 use std::convert::From;
 use std::str::Lines;
+
+// Used to eliminate dynamic heap allocations by allocating a fixed-sized vector on the stack.
+use arrayvec::ArrayVec;
 
 /// Contains the character as a `key` and it's frequency as the `value`
 struct Frequency { key: u8, value: u8 }
@@ -28,15 +33,15 @@ impl FrequencyMap {
     }
 
     /// Collect the first five characters in the sorted frequency map as the checksum of the map.
-    fn collect_checksum(&mut self) -> Vec<u8> {
+    fn collect_checksum(&mut self) -> ArrayVec<[u8; 5]> {
         self.sort();
-        self.data.iter().take(5).map(|x| x.key).collect::<Vec<u8>>()
+        self.data.iter().take(5).map(|x| x.key).collect::<ArrayVec<[u8; 5]>>()
     }
 }
 
 impl<'a> From<&'a str> for FrequencyMap {
     fn from(name: &'a str) -> FrequencyMap {
-        let mut freqmap = FrequencyMap { data: Vec::new() };
+        let mut freqmap = FrequencyMap { data: Vec::with_capacity(name.len()) };
         for character in name.bytes().filter(|&x| x != b'-') { freqmap.increment_key(character); }
         freqmap
     }
@@ -68,7 +73,7 @@ impl<'a> Iterator for RoomIterator<'a> {
                 let (name, sector_id) = prefix.split_at(line.find(|x: char| x.is_numeric()).unwrap());
                 let expected_checksum = checksum[1..checksum.len()-1].as_bytes();
 
-                if FrequencyMap::from(name).collect_checksum() == expected_checksum {
+                if &FrequencyMap::from(name).collect_checksum() == expected_checksum {
                     let sector_id = sector_id.parse::<u32>().unwrap();
                     return Some((name.bytes().map(|x| {
                         if x == b'-' { ' ' } else { wrap_to_char(x, sector_id) }

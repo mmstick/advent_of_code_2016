@@ -24,3 +24,4 @@ lto = true
 opt-level = 3
 
 [dependencies]
+arrayvec = "0.3"
