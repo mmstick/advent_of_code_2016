@@ -88,6 +88,7 @@ impl<'a> Iterator for SecondDigitSelector<'a> {
 
 fn main() {
     let inputs = include_str!("input.txt");
+
     let password = FirstDigitSelector::new(inputs).collect::<String>();
     println!("The password for part one is: {}.", password);
 

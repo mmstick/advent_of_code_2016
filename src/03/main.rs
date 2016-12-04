@@ -48,8 +48,10 @@ impl<'a> Iterator for TriangleColumnIterator<'a> {
 
 fn main() {
     let input = include_str!("input.txt");
+
     let valid_triangles = TriangleRowIterator::new(input).filter(|&x| x).count();
     println!("There are {} valid row-based triangles.", valid_triangles);
+
     let valid_triangles = TriangleColumnIterator::new(input).fold(0, |acc, next| acc + next);
     println!("There are {} valid column-based triangles.", valid_triangles);
 }
