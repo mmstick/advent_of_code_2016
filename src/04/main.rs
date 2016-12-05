@@ -93,12 +93,18 @@ impl<'a> Iterator for RoomIterator<'a> {
 
 fn main() {
     let inputs = include_str!("input.txt");
+    let mut room_iter = RoomIterator::new(inputs);
 
-    let sum = RoomIterator::new(inputs).fold(0, |acc, x| acc + x.1);
+    let (mut sum, mut north_room) = (0, 0);
+    while let Some(room) = room_iter.next() {
+        sum += room.1;
+        if room.0.starts_with("north") { north_room = room.1; break }
+    }
+
+    for room in room_iter { sum += room.1}
+
     println!("There sum of valid room sector IDs is {}.", sum);
-
-    let room = RoomIterator::new(inputs).find(|x| x.0.contains("north")).unwrap();
-    println!("The north pole objects are stored in room {}", room.1)
+    println!("The north pole objects are stored in room {}", north_room)
 }
 
 #[test]
