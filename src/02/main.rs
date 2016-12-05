@@ -1,3 +1,4 @@
+extern crate ralloc;
 use std::str::Lines;
 
 const PAD: [[char; 3]; 3] = [['1', '2', '3'],

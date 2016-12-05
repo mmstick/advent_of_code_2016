@@ -1,3 +1,4 @@
+extern crate ralloc;
 use std::cmp::max;
 use std::str::Lines;
 

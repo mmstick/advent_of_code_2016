@@ -3,6 +3,7 @@ name = "advent_of_code_2016"
 version = "0.1.0"
 dependencies = [
  "arrayvec 0.3.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ralloc 1.0.0 (git+https://github.com/redox-os/ralloc.git)",
 ]
 
 [[package]]
@@ -27,7 +28,38 @@ name = "odds"
 version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
+[[package]]
+name = "ralloc"
+version = "1.0.0"
+source = "git+https://github.com/redox-os/ralloc.git#7d73b18a8c5388d19a191f6a00bd0e54dcebb1c2"
+dependencies = [
+ "ralloc_shim 0.1.1 (git+https://github.com/redox-os/ralloc.git)",
+ "unborrow 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ralloc_shim"
+version = "0.1.1"
+source = "git+https://github.com/redox-os/ralloc.git#7d73b18a8c5388d19a191f6a00bd0e54dcebb1c2"
+dependencies = [
+ "syscall 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "syscall"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "unborrow"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
 [metadata]
 "checksum arrayvec 0.3.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d89f1b0e242270b5b797778af0c8d182a1a2ccac5d8d6fadf414223cc0fab096"
 "checksum nodrop 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "0dbbadd3f4c98dea0bd3d9b4be4c0cdaf1ab57035cb2e41fce3983db5add7cc5"
 "checksum odds 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)" = "c3df9b730298cea3a1c3faa90b7e2f9df3a9c400d0936d6015e6165734eefcba"
+"checksum ralloc 1.0.0 (git+https://github.com/redox-os/ralloc.git)" = "<none>"
+"checksum ralloc_shim 0.1.1 (git+https://github.com/redox-os/ralloc.git)" = "<none>"
+"checksum syscall 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "dae2c4de039bf338dd96f46621f20222c4101045dac5403b46f472608cb5b556"
+"checksum unborrow 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7325e01acc93a22b3097b87e62c8f51676e0a97d6be2e08bc83c2635919e2a55"

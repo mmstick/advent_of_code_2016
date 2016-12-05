@@ -1,3 +1,4 @@
+extern crate ralloc;
 // Set `Direction` as a `Copy` type because it is an 8-bit value, making it more expensive to reference.
 #[derive(Copy, Clone)]
 enum Direction { West, North, East, South }
@@ -89,7 +90,7 @@ fn main() {
 
     let (position, distance) = calculate_distance_for_final_point(&inputs[0..inputs.len()-1]);
     println!("The last point is at ({}, {}), which is {} blocks away.", position.0, position.1, distance);
-    
+
     let (position, distance) = calculate_distance_from_hq(&inputs[0..inputs.len()-1]);
     println!("The Easter Bunny HQ is at ({}, {}), which is {} blocks away.", position.0, position.1, distance);
 }

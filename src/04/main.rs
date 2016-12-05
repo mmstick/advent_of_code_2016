@@ -1,5 +1,4 @@
-#![feature(alloc_system)]
-extern crate alloc_system;
+extern crate ralloc;
 extern crate arrayvec;
 
 use std::cmp::Ordering::{Less, Greater};
