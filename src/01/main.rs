@@ -1,4 +1,6 @@
-extern crate ralloc;
+#![feature(alloc_system)]
+extern crate alloc_system;
+
 // Set `Direction` as a `Copy` type because it is an 8-bit value, making it more expensive to reference.
 #[derive(Copy, Clone)]
 enum Direction { West, North, East, South }

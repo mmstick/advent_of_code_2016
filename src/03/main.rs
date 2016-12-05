@@ -1,4 +1,6 @@
-extern crate ralloc;
+#![feature(alloc_system)]
+extern crate alloc_system;
+
 use std::cmp::max;
 use std::str::Lines;
 

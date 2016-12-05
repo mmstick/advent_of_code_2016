@@ -19,14 +19,14 @@ path = "src/03/main.rs"
 name = "day_04"
 path = "src/04/main.rs"
 
+[[bin]]
+name = "day_05"
+path = "src/05/main.rs"
+
 [profile.release]
 lto = true
 opt-level = 3
 
 [dependencies]
 arrayvec = "0.3"
-
-[dependencies.ralloc]
-git = "https://github.com/redox-os/ralloc.git"
-default-features = false
-features = ["allocator", "tls"]
+rust-crypto = "0.2"
