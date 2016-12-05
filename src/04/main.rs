@@ -51,9 +51,8 @@ impl<'a> From<&'a str> for FrequencyMap {
 }
 
 /// Take a character as a byte and wrap add the character by the alphabet. 'a' ... 'z' -> 'a' ... 'z' -> ...
-fn wrap_to_char(mut character: u8, by: u32) -> char {
-    for _ in 0..by { character = if character == b'z' { b'a' } else { character + 1 }; }
-    character as char
+fn wrap_to_char(character: u8, by: u32) -> char {
+    ((character as u8 - b'a' + (by % 26) as u8) % 26 + b'a') as char
 }
 
 /// Iterates through a list of encrypted rooms and returns their decrypted names and associated room numbers.
