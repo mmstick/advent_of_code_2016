@@ -6,6 +6,7 @@ use crypto::digest::Digest;
 use crypto::md5::Md5;
 
 const PREFIX: &'static str = "wtnhxymk";
+const PREFIX_LEN:    usize = 8;
 const MASK_SECOND_NIBBLE: u8 = 255 ^ (16 + 32 + 64 + 128);
 
 /// Converts a hexadecimal number ranging from 0 to 15 into a character.
@@ -32,8 +33,7 @@ impl Iterator for DoorHasher {
     fn next(&mut self) -> Option<u8> {
         loop {
             self.sh.reset();
-            self.hash.clear();
-            self.hash.push_str(PREFIX);
+            self.hash.truncate(PREFIX_LEN);
             self.hash.push_str(&self.index.to_string());
             self.index += 1;
             self.sh.input_str(&self.hash);
