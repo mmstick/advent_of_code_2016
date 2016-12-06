@@ -1,7 +1,8 @@
 #![allow(dead_code)]
-#![feature(alloc_system)]
-extern crate alloc_system;
+// #![feature(alloc_system)]
+// extern crate alloc_system;
 extern crate crypto;
+extern crate num_cpus;
 
 use crypto::digest::Digest;
 use crypto::md5::Md5;
@@ -79,7 +80,7 @@ fn collect_passwords_threaded(first_out: &mut [char; 8], second_out: &mut [char;
     let first_matched   = Arc::new(AtomicUsize::new(0));
     let mut thread_handles = Vec::with_capacity(4);
 
-    for _ in 0..4 {
+    for _ in 0..num_cpus::get() {
         let index           = index.clone();
         let first_password  = first_password.clone();
         let second_password = second_password.clone();
@@ -89,8 +90,14 @@ fn collect_passwords_threaded(first_out: &mut [char; 8], second_out: &mut [char;
             let mut sh     = Md5::new();
             let mut hash   = String::from(PREFIX);
             let mut digest = [0u8; 16];
+            let sync_point = 500_000;
+            let mut current_point = 0;
             loop {
-                if second_matched.load(Ordering::SeqCst) == 8 { break }
+                if current_point > sync_point {
+                    current_point = 0;
+                    if second_matched.load(Ordering::SeqCst) == 8 { break }
+                }
+                current_point += 1;
                 sh.reset();
                 hash.truncate(PREFIX_LEN);
                 let index = index.fetch_add(1, Ordering::SeqCst);
