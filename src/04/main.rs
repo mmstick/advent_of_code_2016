@@ -16,15 +16,9 @@ struct Frequency { key: u8, value: u8 }
 struct FrequencyMap { data: ArrayVec<[Frequency; 26]> }
 
 impl FrequencyMap {
-    /// If key exists, increment it, else add it to the map
-    fn increment_key(&mut self, key: u8) {
-        for element in &mut self.data {
-            if element.key == key {
-                element.value += 1;
-                return
-            }
-        }
-    }
+    /// Increment a given character in the map.
+    /// The character's index is guaranteed to be the character's integer representation minus 97.
+    fn increment_key(&mut self, key: u8) { self.data[(key - 97) as usize].value += 1; }
 
     /// Sort the frequency map by the greater number of occurrences first, and alphabetical order second.
     fn sort(&mut self) {
