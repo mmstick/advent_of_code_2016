@@ -1,9 +1,14 @@
+#![allow(dead_code)]
 #![feature(alloc_system)]
 extern crate alloc_system;
 extern crate crypto;
 
 use crypto::digest::Digest;
 use crypto::md5::Md5;
+
+use std::thread;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 const PREFIX: &'static str = "wtnhxymk";
 const PREFIX_LEN:    usize = 8;
@@ -66,10 +71,70 @@ fn collect_passwords(first_password: &mut [char; 8], second_password: &mut [char
     }
 }
 
+fn collect_passwords_threaded(first_out: &mut [char; 8], second_out: &mut [char; 8]) {
+    let first_password  = Arc::new(Mutex::new(['\0'; 8]));
+    let second_password = Arc::new(Mutex::new(['\0'; 8]));
+    let index           = Arc::new(AtomicUsize::new(0));
+    let second_matched  = Arc::new(AtomicUsize::new(0));
+    let first_matched   = Arc::new(AtomicUsize::new(0));
+    let mut thread_handles = Vec::with_capacity(4);
+
+    for _ in 0..4 {
+        let index           = index.clone();
+        let first_password  = first_password.clone();
+        let second_password = second_password.clone();
+        let first_matched   = first_matched.clone();
+        let second_matched  = second_matched.clone();
+        let handle = thread::spawn(move || {
+            let mut sh     = Md5::new();
+            let mut hash   = String::from(PREFIX);
+            let mut digest = [0u8; 16];
+            loop {
+                if second_matched.load(Ordering::SeqCst) == 8 { break }
+                sh.reset();
+                hash.truncate(PREFIX_LEN);
+                let index = index.fetch_add(1, Ordering::SeqCst);
+                hash.push_str(&index.to_string());
+                sh.input_str(&hash);
+                sh.result(&mut digest);
+                if contains_five_zeroes(digest[0], digest[1], digest[2]) {
+                    let first_char = digest[2] & MASK_SECOND_NIBBLE;
+                    let second_char = digest[3] >> 4;
+
+                    let first_matched = first_matched.fetch_add(1, Ordering::SeqCst);
+                    if first_matched < 8 {
+                        if let Ok(mut first_password) = first_password.lock() {
+                            first_password[first_matched] = to_char(first_char);
+                        }
+                    }
+
+                    if first_char < 8 {
+                        if let Ok(mut second_password) = second_password.lock() {
+                            if second_password[first_char as usize] == '\0' {
+                                second_password[first_char as usize] = to_char(second_char);
+                                let previous = second_matched.fetch_add(1, Ordering::SeqCst);
+                                if previous == 7 { break }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        thread_handles.push(handle);
+    }
+
+    for handle in thread_handles { let _ = handle.join(); }
+
+    first_out.clone_from_slice(&first_password.lock().unwrap()[0..]);
+    second_out.clone_from_slice(&second_password.lock().unwrap()[0..]);
+}
+
 fn main() {
     let mut first_password:  [char; 8] = ['\0'; 8];
     let mut second_password: [char; 8] = ['\0'; 8];
-    collect_passwords(&mut first_password, &mut second_password);
+
+    // collect_passwords(&mut first_password, &mut second_password);
+    collect_passwords_threaded(&mut first_password, &mut second_password);
 
     println!("The first door's password is {}.\nThe second door's password is {}.",
         first_password.iter().cloned().collect::<String>(),
