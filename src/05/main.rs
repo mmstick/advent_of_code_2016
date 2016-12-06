@@ -90,17 +90,18 @@ fn collect_passwords_threaded(first_out: &mut [char; 8], second_out: &mut [char;
             let mut sh     = Md5::new();
             let mut hash   = String::from(PREFIX);
             let mut digest = [0u8; 16];
-            let sync_point = 500_000;
+            let sync_point = 10_000;
             let mut current_point = 0;
+            let mut finished_first = false;
             loop {
                 if current_point > sync_point {
                     current_point = 0;
-                    if second_matched.load(Ordering::SeqCst) == 8 { break }
+                    if second_matched.load(Ordering::Relaxed) == 8 { break }
                 }
                 current_point += 1;
                 sh.reset();
                 hash.truncate(PREFIX_LEN);
-                let index = index.fetch_add(1, Ordering::SeqCst);
+                let index = index.fetch_add(1, Ordering::Relaxed);
                 hash.push_str(&index.to_string());
                 sh.input_str(&hash);
                 sh.result(&mut digest);
@@ -108,10 +109,15 @@ fn collect_passwords_threaded(first_out: &mut [char; 8], second_out: &mut [char;
                     let first_char = digest[2] & MASK_SECOND_NIBBLE;
                     let second_char = digest[3] >> 4;
 
-                    let first_matched = first_matched.fetch_add(1, Ordering::SeqCst);
-                    if first_matched < 8 {
-                        if let Ok(mut first_password) = first_password.lock() {
-                            first_password[first_matched] = to_char(first_char);
+                    if !finished_first {
+                        let first_matched = first_matched.fetch_add(1, Ordering::Relaxed);
+                        if first_matched < 8 {
+                            if let Ok(mut first_password) = first_password.lock() {
+                                first_password[first_matched] = to_char(first_char);
+                            }
+                            if first_matched == 7 {
+                                finished_first = true;
+                            }
                         }
                     }
 
@@ -140,8 +146,8 @@ fn main() {
     let mut first_password:  [char; 8] = ['\0'; 8];
     let mut second_password: [char; 8] = ['\0'; 8];
 
-    // collect_passwords(&mut first_password, &mut second_password);
-    collect_passwords_threaded(&mut first_password, &mut second_password);
+    // collect_passwords(&mut first_password, &mut second_password);       // 14s
+    collect_passwords_threaded(&mut first_password, &mut second_password); // 3.5s
 
     println!("The first door's password is {}.\nThe second door's password is {}.",
         first_password.iter().cloned().collect::<String>(),
