@@ -18,18 +18,18 @@ impl FrequencyMap {
         }
     }
 
-    // Collect the most and second-most frequent characters in the map.
-    fn most_frequent(&self) -> (char, char) {
-        let (mut most_frequent, mut second_frequent) = (('a', 0), ('a', 0));
+    // Collect the most and least characters in the map.
+    fn most_and_least_frequent(&self) -> (char, char) {
+        let (mut most_frequent, mut least_frequent) = (('a', 0), ('a', 255));
         for element in &self.data {
             if element.value > most_frequent.1 {
-                second_frequent = (most_frequent.0, most_frequent.1);
                 most_frequent   = (element.key, element.value);
-            } else if element.value > second_frequent.1 {
-                second_frequent = (element.key, element.value);
+            }
+            if element.value < least_frequent.1 {
+                least_frequent = (element.key, element.value);
             }
         }
-        (most_frequent.0, second_frequent.0)
+        (most_frequent.0, least_frequent.0)
     }
 
     // Reset the values on the map
@@ -45,9 +45,9 @@ fn get_message(unmodified: &mut [char; 8], modified: &mut [char; 8], inputs: &st
         for message in inputs.lines() {
             if let Some(character) = message.chars().nth(index) { frequency.increment_key(character); }
         }
-        let (most_frequent, second_most_frequent) = frequency.most_frequent();
+        let (most_frequent, least_frequent) = frequency.most_and_least_frequent();
         unmodified[index] = most_frequent;
-        modified[index]   = second_most_frequent;
+        modified[index]   = least_frequent;
         frequency.reset();
     }
 }
