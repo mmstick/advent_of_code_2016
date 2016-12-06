@@ -8,28 +8,18 @@ struct Frequency { key: char, value: u8 }
 struct FrequencyMap { data: ArrayVec<[Frequency; 26]> }
 
 impl FrequencyMap {
-    /// If key exists, increment it, else add it to the map
-    fn increment_key(&mut self, key: char) {
-        for element in &mut self.data {
-            if element.key == key {
-                element.value += 1;
-                return
-            }
-        }
+    /// Increment a given character in the map.
+    /// The character's index is guaranteed to be the character's integer representation minus 97.
+    fn increment_key(&mut self, key: char) { self.data[(key as u8 - 97) as usize].value += 1; }
+
+    /// Collect the most frequent character in the map.
+    fn most_frequent(&self) -> char {
+        self.data.iter().fold(('a', 0), |acc, x| if x.value > acc.1 { (x.key, x.value) } else { acc }).0
     }
 
-    // Collect the most and least characters in the map.
-    fn most_and_least_frequent(&self) -> (char, char) {
-        let (mut most_frequent, mut least_frequent) = (('a', 0), ('a', 255));
-        for element in &self.data {
-            if element.value > most_frequent.1 {
-                most_frequent   = (element.key, element.value);
-            }
-            if element.value < least_frequent.1 {
-                least_frequent = (element.key, element.value);
-            }
-        }
-        (most_frequent.0, least_frequent.0)
+    /// Collect the least frequent character in the map.
+    fn least_frequent(&self) -> char {
+        self.data.iter().fold(('a', 255), |acc, x| if x.value < acc.1 { (x.key, x.value) } else { acc }).0
     }
 
     // Reset the values on the map
@@ -45,9 +35,8 @@ fn get_message(unmodified: &mut [char; 8], modified: &mut [char; 8], inputs: &st
         for message in inputs.lines() {
             if let Some(character) = message.chars().nth(index) { frequency.increment_key(character); }
         }
-        let (most_frequent, least_frequent) = frequency.most_and_least_frequent();
-        unmodified[index] = most_frequent;
-        modified[index]   = least_frequent;
+        unmodified[index] = frequency.most_frequent();
+        modified[index]   = frequency.least_frequent();
         frequency.reset();
     }
 }
@@ -58,7 +47,7 @@ fn main() {
     let mut modified_message   = ['\0'; 8];
     get_message(&mut unmodified_message, &mut modified_message, inputs);
 
-    println!("The unmodified message is {}.\n The modified message is {}.\n",
+    println!("The unmodified message is {}.\nThe modified message is {}.\n",
         unmodified_message.iter().cloned().collect::<String>(),
         modified_message.iter().cloned().collect::<String>());
 }
