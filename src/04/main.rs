@@ -61,8 +61,8 @@ impl<'a> RoomIterator<'a> {
 }
 
 impl<'a> Iterator for RoomIterator<'a> {
-    type Item = (String, u32);
-    fn next(&mut self) -> Option<(String, u32)> {
+    type Item = (ArrayVec<[char; 5]>, u32);
+    fn next(&mut self) -> Option<(ArrayVec<[char; 5]>, u32)> {
         loop {
             if let Some(line) = self.lines.next() {
                 let (prefix, checksum) = line.split_at(line.find('[').unwrap());
@@ -73,7 +73,7 @@ impl<'a> Iterator for RoomIterator<'a> {
                     let sector_id = sector_id.parse::<u32>().unwrap();
                     return Some((name.bytes().map(|x| {
                         if x == b'-' { ' ' } else { wrap_to_char(x, sector_id) }
-                    }).collect::<String>(), sector_id));
+                    }).take(5).collect::<ArrayVec<[_; 5]>>(), sector_id));
                 } else {
                     continue
                 }
@@ -84,6 +84,10 @@ impl<'a> Iterator for RoomIterator<'a> {
     }
 }
 
+fn room_is_match(room: &[char]) -> bool {
+    room == &['n', 'o', 'r', 't', 'h']
+}
+
 fn main() {
     let inputs = include_str!("input.txt");
     let mut room_iter = RoomIterator::new(inputs);
@@ -91,7 +95,7 @@ fn main() {
     let (mut sum, mut north_room) = (0, 0);
     while let Some(room) = room_iter.next() {
         sum += room.1;
-        if room.0.starts_with("north") { north_room = room.1; break }
+        if room_is_match(&room.0) { north_room = room.1; break }
     }
 
     for room in room_iter { sum += room.1}
