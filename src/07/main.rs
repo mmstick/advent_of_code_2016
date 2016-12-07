@@ -144,32 +144,17 @@ fn contains_bab(input: &str, aba: &ArrayVec<[char; 3]>) -> bool {
     false
 }
 
-fn supports_tls(ip: &str) -> bool {
-    let mut has_tls = false;
-    for token in IPTokenizer::new(ip) {
-        match token {
-            IPToken::Outer(content) => {
-                if contains_abba(content) { has_tls = true; }
-            },
-            IPToken::Inner(content) => {
-                if contains_abba(content) { return false }
-            }
-        }
+fn supports_tls(inner: &[&str], outer: &[&str]) -> bool {
+    if !outer.iter().any(|x| contains_abba(x)) {
+        inner.iter().any(|x| contains_abba(x))
+    } else {
+        false
     }
-    has_tls
 }
 
-fn supports_ssl(ip: &str) -> bool {
-    for token in IPTokenizer::new(ip) {
-        if let IPToken::Outer(content) = token {
-            for aba in ABATokenizer::new(content) {
-                for token in IPTokenizer::new(ip) {
-                    if let IPToken::Inner(content) = token {
-                        if contains_bab(content, &aba) { return true }
-                    }
-                }
-            }
-        }
+fn supports_ssl(inner: &[&str], outer: &[&str]) -> bool {
+    for aba in outer.iter().flat_map(|x| ABATokenizer::new(x)) {
+        if inner.iter().any(|token| contains_bab(token, &aba) ) { return true }
     }
     false
 }
@@ -179,8 +164,16 @@ fn main() {
     let begin = time::precise_time_ns();
     let (mut tls_supported, mut ssl_supported) = (0, 0);
     for line in inputs.lines() {
-        if supports_tls(line) { tls_supported += 1; }
-        if supports_ssl(line) { ssl_supported += 1; }
+        let mut outer: ArrayVec<[&str; 5]> = ArrayVec::new();
+        let mut inner: ArrayVec<[&str; 3]> = ArrayVec::new();
+        for token in IPTokenizer::new(line) {
+            match token {
+                IPToken::Inner(content) => { inner.push(content); },
+                IPToken::Outer(content) => { outer.push(content); },
+            }
+        }
+        if supports_tls(&inner, &outer) { tls_supported += 1; }
+        if supports_ssl(&inner, &outer) { ssl_supported += 1; }
     }
     let end = time::precise_time_ns();
     println!("{} IPs support TLS.\n{} IPs support SSL.", tls_supported, ssl_supported);
