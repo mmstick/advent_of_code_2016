@@ -145,8 +145,8 @@ fn contains_bab(input: &str, aba: &ArrayVec<[char; 3]>) -> bool {
 }
 
 fn supports_tls(inner: &[&str], outer: &[&str]) -> bool {
-    if !outer.iter().any(|x| contains_abba(x)) {
-        inner.iter().any(|x| contains_abba(x))
+    if !inner.iter().any(|x| contains_abba(x)) {
+        outer.iter().any(|x| contains_abba(x))
     } else {
         false
     }
@@ -185,10 +185,18 @@ fn part_one() {
     let inputs = ["abba[mnop]qrst", "abcd[bddb]xyyx", "aaaa[qwer]tyui", "ioxxoj[asdfgh]zxcvbn"];
     let expected = [true, false, false, true];
     let mut count = 0;
-    for (actual, &expected) in inputs.iter().map(|x| supports_tls(x)).zip(expected.iter()) {
+    for line in inputs.iter() {
+        let mut outer: ArrayVec<[&str; 5]> = ArrayVec::new();
+        let mut inner: ArrayVec<[&str; 3]> = ArrayVec::new();
+        for token in IPTokenizer::new(line) {
+            match token {
+                IPToken::Inner(content) => { inner.push(content); },
+                IPToken::Outer(content) => { outer.push(content); },
+            }
+        }
         println!("#{}", count);
+        assert_eq!(expected[count], supports_tls(&inner, &outer));
         count += 1;
-        assert_eq!(actual, expected);
     }
 }
 
@@ -197,9 +205,16 @@ fn part_two() {
     let inputs = ["aba[bab]xyz", "xyx[xyx]xyx", "aaa[kek]eke", "zazbz[bzb]cdb, zazbz[acdc]dfas[fsf]adcd"];
     let expected = [true, false, true, true, true];
     let mut count = 0;
-    for (actual, &expected) in inputs.iter().map(|x| supports_ssl(x)).zip(expected.iter()) {
-        println!("#{}", count);
+    for line in inputs.iter() {
+        let mut outer: ArrayVec<[&str; 5]> = ArrayVec::new();
+        let mut inner: ArrayVec<[&str; 3]> = ArrayVec::new();
+        for token in IPTokenizer::new(line) {
+            match token {
+                IPToken::Inner(content) => { inner.push(content); },
+                IPToken::Outer(content) => { outer.push(content); },
+            }
+        }
+        assert_eq!(expected[count], supports_ssl(&inner, &outer));
         count += 1;
-        assert_eq!(actual, expected);
     }
 }
