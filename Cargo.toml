@@ -35,3 +35,4 @@ opt-level = 3
 arrayvec = "0.3"
 rust-crypto = "0.2"
 num_cpus = "1.2"
+time = "0.1"

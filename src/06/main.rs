@@ -1,7 +1,8 @@
 #![feature(alloc_system)]
 extern crate alloc_system;
-
 extern crate arrayvec;
+extern crate time;
+
 use arrayvec::ArrayVec;
 
 /// Contains the character as a `key` and it's frequency as the `value`
@@ -46,13 +47,19 @@ fn get_message(unmodified: &mut [char; 8], modified: &mut [char; 8], inputs: &st
 
 fn main() {
     let inputs = include_str!("input.txt");
+
+    let begin = time::precise_time_ns();
     let mut unmodified_message = ['\0'; 8];
     let mut modified_message   = ['\0'; 8];
     get_message(&mut unmodified_message, &mut modified_message, inputs);
+    let end = time::precise_time_ns();
 
     println!("The unmodified message is {}.\nThe modified message is {}.\n",
         unmodified_message.iter().cloned().collect::<String>(),
         modified_message.iter().cloned().collect::<String>());
+
+    println!("Day 06 Execution Time: {} milliseconds", (end - begin) as f64 / 1_000_000f64);
+
 }
 
 #[test]
