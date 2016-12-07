@@ -4,14 +4,16 @@ extern crate arrayvec;
 extern crate time;
 use arrayvec::ArrayVec;
 
+/// Designates a string slice as either being an `Inner` or `Outer` token.
 enum IPToken<'a> {
     Inner(&'a str),
     Outer(&'a str),
 }
 
+/// Given an `IPv7` address as input, it will separate the `Inner` tokens from the `Outer` tokens.
 struct IPTokenizer<'a> {
-    line: &'a str,
-    read: usize,
+    line:    &'a str,
+    read:    usize,
     bracket: bool
 }
 
@@ -55,11 +57,12 @@ impl<'a> Iterator for IPTokenizer<'a> {
     }
 }
 
+/// Check if a string slice contains an **ABBA** pattern
 fn contains_abba(input: &str) -> bool {
     let mut pattern = ['\0'; 4];
-    let mut char_iter = input.chars();
+    let mut chars = input.chars();
 
-    if let (Some(a), Some(b), Some(c), Some(d)) = (char_iter.next(), char_iter.next(), char_iter.next(), char_iter.next()) {
+    if let (Some(a), Some(b), Some(c), Some(d)) = (chars.next(), chars.next(), chars.next(), chars.next()) {
         pattern[0] = a;
         pattern[1] = b;
         pattern[2] = c;
@@ -68,7 +71,7 @@ fn contains_abba(input: &str) -> bool {
             return true
         }
 
-        for character in char_iter {
+        for character in chars {
             pattern[0] = pattern[1];
             pattern[1] = pattern[2];
             pattern[2] = pattern[3];
@@ -81,10 +84,11 @@ fn contains_abba(input: &str) -> bool {
     false
 }
 
+/// Meant to be used with `Outer` tokens, it will return all possible **ABA** values for the given token.
 struct ABATokenizer<'a> {
-    data: &'a str,
+    data:    &'a str,
     pattern: ArrayVec<[char; 3]>,
-    read: usize
+    read:    usize
 }
 
 impl<'a> ABATokenizer<'a> {
@@ -121,6 +125,8 @@ impl<'a> Iterator for ABATokenizer<'a> {
     }
 }
 
+/// Meant to be used with `Inner` tokens, this will check to see if an `Inner` token contains
+/// the **BAB** version of an `Outer` token's **ABA**.
 fn contains_bab(input: &str, aba: &ArrayVec<[char; 3]>) -> bool {
     let mut pattern = ['\0'; 3];
     let mut char_iter = input.chars();
@@ -144,6 +150,9 @@ fn contains_bab(input: &str, aba: &ArrayVec<[char; 3]>) -> bool {
     false
 }
 
+/// Checks an `IPv7` address's `Inner` and `Outer` tokens to determine if it supports TLS.
+/// TLS support means that the `Inner` tokens do not contain any **ABBA** patterns,
+/// but that the `Outer` tokens do contain at least one **ABBA** pattern.
 fn supports_tls(inner: &[&str], outer: &[&str]) -> bool {
     if !inner.iter().any(|x| contains_abba(x)) {
         outer.iter().any(|x| contains_abba(x))
@@ -152,12 +161,16 @@ fn supports_tls(inner: &[&str], outer: &[&str]) -> bool {
     }
 }
 
+/// Checks an `IPv7` address's `Inner` and `Outer` tokens to determine if it supports SSL.
+/// SSL support means that there is at least one **BAB** match in an `Inner` token
+/// that is a reverse of an `Outer` token's **ABA** match.
 fn supports_ssl(inner: &[&str], outer: &[&str]) -> bool {
     for aba in outer.iter().flat_map(|x| ABATokenizer::new(x)) {
         if inner.iter().any(|token| contains_bab(token, &aba) ) { return true }
     }
     false
 }
+
 
 fn main() {
     let inputs = include_str!("input.txt");
