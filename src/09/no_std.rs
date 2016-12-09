@@ -25,6 +25,10 @@ impl<'a> Decompressor<'a> {
     }
 }
 
+/// A `DecompressionToken` may either be a regular string slice that does not
+/// need to be further searched, or a marker that contains the repeat count
+/// and the string slice to repeat, which may or may not contain even more
+/// `DecompressionToken`s.
 #[derive(PartialEq, Debug)]
 enum DecompressionToken<'a> {
     Regular(&'a str),
@@ -47,6 +51,10 @@ impl<'a> Iterator for Decompressor<'a> {
             let mut start = self.read;
             let mut charas = 0usize;
             let mut found_first_num = false;
+
+            // First find the number of characters that will be repeated before
+            // the first 'x', and then find the number of times to repeat
+            // before the ')' character that follows.
             for character in self.data.chars().skip(self.read) {
                 if found_first_num {
                     if character == ')' {
@@ -65,6 +73,9 @@ impl<'a> Iterator for Decompressor<'a> {
             None // Error
         } else {
             let start = self.read - 1;
+
+            // A `Regular` token ends when either a '(' is found or the
+            // internal data has been exhausted.
             for character in self.data.chars().skip(self.read) {
                 if character == '(' {
                     return Some(DecompressionToken::Regular(&self.data[start..self.read]));
