@@ -1,6 +1,14 @@
+#![no_std]
+#![feature(libc)]
+#![feature(start)]
 #![feature(alloc_system)]
 extern crate alloc_system;
 extern crate time;
+extern crate libc;
+
+extern "C" {
+    fn printf(fmt: *const u8, ...) -> i32;
+}
 
 const INPUT: &'static str = include_str!("input.txt");
 
@@ -94,16 +102,21 @@ fn calculate_size_p2(input: &str) -> usize {
     decompressed_length
 }
 
-fn main() {
+#[start]
+fn start(_argc: isize, _argv: *const *const u8) -> isize {
     let begin = time::precise_time_ns();
     let decompressed_length_p1 = calculate_size_p1(INPUT);
     let decompressed_length_p2 = calculate_size_p2(INPUT);
     let end = time::precise_time_ns();
-    println!("The decompressed length of version one is {} bytes ({} KiB)",
-        decompressed_length_p1, decompressed_length_p1 / 1024);
-    println!("The decompressed length of version two is {} bytes ({} GiB)",
-        decompressed_length_p2, decompressed_length_p2 / 1024 / 1024 / 1024);
-    println!("Day 09: Execution Time: {} milliseconds", ((end - begin) as f64) / 1_000_000f64);
+    unsafe {
+        printf(b"The decompressed length of version one is %d bytes (%d KiB).\n\0".as_ptr(),
+            decompressed_length_p1, decompressed_length_p1 / 1024);
+        printf(b"The decompressed length of version two is %lld bytes (%d GiB)\n\0".as_ptr(),
+            decompressed_length_p2, decompressed_length_p2 / 1024 / 1024 / 1024);
+        printf(b"Day 09: Execution Time: %f milliseconds\n\0".as_ptr(),
+            ((end - begin) as f64) / 1_000_000f64);
+    }
+    0
 }
 
 #[test]
