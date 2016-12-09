@@ -128,4 +128,6 @@ fn decompressor_test() {
     for (actual, expected) in Decompressor::new(input).zip(expected.iter()) {
         assert_eq!(actual, *expected);
     }
+
+    assert_eq!(Decompressor::new(input).count(), 13);
 }
