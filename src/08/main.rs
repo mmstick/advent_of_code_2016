@@ -1,3 +1,4 @@
+#![feature(step_by)]
 #![feature(alloc_system)]
 extern crate alloc_system;
 extern crate arrayvec;
@@ -5,58 +6,61 @@ extern crate time;
 
 use arrayvec::ArrayVec;
 use std::io::{self, Write};
+use std::{u8, u64};
 
-const INPUT:             &'static str = include_str!("input.txt");
-const BYTE_LOOKUP:   &'static [u8; 6] = &[1, 3, 7, 15, 31, 63];
-const ROTATE_LOOKUP: &'static [u8; 5] = &[31, 15, 7, 3, 1];
-const ROW_MASKS:     &'static [u8; 6] = &[0b1, 0b10, 0b100, 0b1000, 0b10000, 0b100000];
+const INPUT:  &'static str = include_str!("input.txt");
+const MASK_6:           u8 = 0b111111;
+const MASK_50:         u64 = 0b11111111111111111111111111111111111111111111111111;
 
-struct Screen {
+
+fn mersenne_generator(num: u64) -> u64 {
+    (0..num).fold(0, |acc, _| acc + acc + 1)
+}
+
+trait Screen {
+    fn enabled_pixels(&self) -> u32;
+    fn rect(&mut self, wide: u8, tall: u8);
+    fn rotate_row(&mut self, row: u8, shift: u8);
+    fn rotate_column(&mut self, column: u8, shift: u8);
+    fn display_pixels(&self);
+}
+
+struct Screen8 {
     data: [u8; 50]
 }
 
-impl Default for Screen {
-    fn default() -> Screen { Screen { data: [0; 50]} }
+impl Default for Screen8 {
+    fn default() -> Screen8 { Screen8 { data: [0; 50] } }
 }
 
-impl Screen {
+impl Screen for Screen8 {
     fn enabled_pixels(&self) -> u32 {
         self.data.iter().fold(0, |acc, x| acc + x.count_ones())
     }
 
     fn rect(&mut self, wide: u8, tall: u8) {
-        let bytes_enable = if tall > 0 && tall < 7 {
-            BYTE_LOOKUP[(tall - 1) as usize]
-        } else {
-            return
-        };
-
+        let bytes_enable = mersenne_generator(tall as u64) as u8;
         for row in 0..wide { self.data[row as usize] |= bytes_enable; }
     }
 
     fn rotate_column(&mut self, column: u8, shift: u8) {
-        let mask_bits = if shift > 0 && shift < 6 {
-            ROTATE_LOOKUP[(shift - 1) as usize]
-        } else {
-            return
-        };
-
+        let mask_bits = mersenne_generator((6 - shift) as u64) as u8;
         let mut current_value = self.data[column as usize];
-        let high = current_value & (255 ^ mask_bits);
+        let high = current_value & (u8::MAX ^ mask_bits);
         self.data[column as usize] = if high == 0 {
             current_value << shift
         } else {
             current_value = current_value << shift;
             current_value |= high >> (6 - shift);
-            current_value & (255 ^ (64 + 128))
+            current_value & MASK_6
         };
     }
 
     fn rotate_row(&mut self, row: u8, shift: u8) {
-        let row_mask     = ROW_MASKS[row as usize];
+        let row_mask     = 1 << row;
         let mut new_data = [0; 50];
         for (id, row) in self.data.iter().enumerate() {
-            new_data[id] = row & (255 ^ row_mask);
+            new_data[id] = row & (u8::MAX ^ row_mask);
         }
 
         for (mut id, row) in self.data.iter().enumerate() {
@@ -73,9 +77,79 @@ impl Screen {
         let stdout     = io::stdout();
         let mut stdout = stdout.lock();
         for column in 0..6 {
-            let row_mask = ROW_MASKS[column];
+            let row_mask = 1 << column;
             for row in 0..49 {
                 if self.data[row] & row_mask == 0 {
+                    stdout.write(b" ").unwrap();
+                } else {
+                    stdout.write(b"#").unwrap();
+                }
+            }
+            stdout.write(b"\n").unwrap();
+        }
+    }
+}
+
+struct Screen64 {
+    data: [u64; 6]
+}
+
+impl Default for Screen64 {
+    fn default() -> Screen64 { Screen64 { data: [0; 6] } }
+}
+
+impl Screen for Screen64 {
+    fn enabled_pixels(&self) -> u32 {
+        self.data.iter().fold(0, |acc, x| acc + x.count_ones())
+    }
+
+    fn rect(&mut self, wide: u8, tall: u8) {
+        let bytes_enable = mersenne_generator(wide as u64);
+        for column in 0..tall { self.data[column as usize] |= bytes_enable; }
+    }
+
+    fn rotate_row(&mut self, row: u8, shift: u8) {
+        let mask_bits = mersenne_generator((50 - shift) as u64);
+        let mut current_value = self.data[row as usize];
+        let high = current_value & (u64::MAX ^ mask_bits);
+        self.data[row as usize] = if high == 0 {
+            current_value << shift
+        } else {
+            current_value = current_value << shift;
+            current_value |= high >> (50 - shift);
+            current_value & MASK_50
+        };
+    }
+
+    fn rotate_column(&mut self, column: u8, shift: u8) {
+        let column_mask  = 1 << column;
+        let mut new_data = [0; 6];
+
+        for (id, column) in self.data.iter().enumerate() {
+            new_data[id] = column & (u64::MAX ^ column_mask);
+        }
+
+        for (id, column) in self.data.iter().enumerate() {
+            new_data[id] = column & (u64::MAX ^ column_mask);
+        }
+
+        for (mut id, column) in self.data.iter().enumerate() {
+            id = id + shift as usize;
+            new_data[if id > 5 { id - 6 } else { id }] += column & column_mask;
+        }
+
+        for (id, column) in self.data.iter_mut().enumerate() {
+            *column = new_data[id];
+        }
+    }
+
+    fn display_pixels(&self) {
+        let stdout     = io::stdout();
+        let mut stdout = stdout.lock();
+        for row in 0..6 {
+            for column in 0..49 {
+                let column_mask = 1 << column;
+                if self.data[row] & column_mask == 0 {
                     stdout.write(b" ").unwrap();
                 } else {
                     stdout.write(b"#").unwrap();
@@ -115,8 +189,7 @@ fn convert_to_action(input: &str) -> Action {
     }
 }
 
-fn lit_pixels(input: &str) -> u32 {
-    let mut screen = Screen::default();
+fn lit_pixels<S: Screen>(input: &str, mut screen: S) -> u32 {
     for line in input.lines() {
         match convert_to_action(line) {
             Action::Rect(wide, tall)            => screen.rect(wide, tall),
@@ -131,7 +204,7 @@ fn lit_pixels(input: &str) -> u32 {
 
 fn main() {
     let begin = time::precise_time_ns();
-    let enabled_pixels = lit_pixels(INPUT);
+    let enabled_pixels = lit_pixels(INPUT, Screen64::default());
     let end = time::precise_time_ns();
     println!("There are {} enabled pixels.", enabled_pixels);
     println!("Day 08 Execution Time: {} milliseconds", ((end - begin) as f64) / 1_000_000f64);
@@ -139,7 +212,7 @@ fn main() {
 
 #[test]
 fn test_rect() {
-    let mut screen = Screen::default();
+    let mut screen = Screen8::default();
     screen.rect(1, 1);
     assert_eq!(screen.data[0], 0b1);
     assert_eq!(screen.data[1], 0);
@@ -157,16 +230,18 @@ fn test_rect() {
     assert_eq!(screen.data[1], 0b111111);
     assert_eq!(screen.data[2], 0b111111);
     assert_eq!(screen.enabled_pixels(), 18);
+
+    let mut screen = Screen64::default();
+    screen.rect(3, 6);
+    for row in 0..6 { assert_eq!(screen.data[row], 0b111); }
 }
 
 #[test]
 fn test_rows() {
-    let mut screen = Screen::default();
+    let mut screen = Screen8::default();
     screen.rect(50, 1);
     assert_eq!(screen.enabled_pixels(), 50);
-    for column in (0..50).step_by(2) {
-        screen.rotate_column(column, 1);
-    }
+    for column in (0..50).step_by(2) { screen.rotate_column(column, 1); }
     assert_eq!(screen.enabled_pixels(), 50);
     assert_eq!(screen.data[0], 0b10);
     assert_eq!(screen.data[1], 0b1);
@@ -182,20 +257,11 @@ fn test_rows() {
     screen.rotate_column(1, 3);
     assert_eq!(screen.data[0], 0b11000);
     assert_eq!(screen.data[1], 0b1000);
-
-    let mut screen = Screen::default();
-    screen.rect(1, 1);
-    assert_eq!(screen.enabled_pixels(), 1);
-    screen.rotate_row(0, 6);
-    screen.rect(1, 1);
-    println!("{:b}", screen.data[0]);
-    println!("{:b}", screen.data[6]);
-    assert_eq!(screen.enabled_pixels(), 2);
 }
 
 #[test]
 fn test_columns() {
-    let mut screen = Screen::default();
+    let mut screen = Screen8::default();
     screen.rect(30, 3);
     assert_eq!(screen.data[0], 0b111);
     assert_eq!(screen.data[30], 0);
@@ -206,7 +272,13 @@ fn test_columns() {
     assert_eq!(screen.data[0], 0b001110);
     screen.rotate_column(0, 3);
     assert_eq!(screen.data[0], 0b110001); 
-    assert_eq!(screen.enabled_pixels(), 90); 
+    assert_eq!(screen.enabled_pixels(), 90);
+
+    let mut screen = Screen64::default();
+    screen.rect(3, 3);
+    for column in 0..3 { assert_eq!(screen.data[column], 7); }
+    screen.rotate_column(0, 3);
+    assert_eq!(screen.data[3], 1);
 }
 
 #[test]
@@ -249,6 +321,13 @@ fn test_input() {
     rotate row y=0 by 4
     rect 2x1"#;
 
-    assert_eq!(6, lit_pixels(input));
-    assert_eq!(116, lit_pixels(INPUT));
+    assert_eq!(6, lit_pixels(input, Screen8::default()));
+    assert_eq!(6, lit_pixels(input, Screen64::default()));
+    assert_eq!(116, lit_pixels(INPUT, Screen8::default()));
+    assert_eq!(116, lit_pixels(INPUT, Screen64::default()));
+}
+
+#[test]
+fn mersenne_test() {
+    assert_eq!(7, mersenne_generator(3));
 }
