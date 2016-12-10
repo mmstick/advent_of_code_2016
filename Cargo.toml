@@ -43,6 +43,10 @@ path = "src/09/main.rs"
 name = "nostd_09"
 path = "src/09/no_std.rs"
 
+[[bin]]
+name = "day_10"
+path = "src/10/main.rs"
+
 [profile.release]
 lto = true
 opt-level = 3
