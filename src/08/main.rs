@@ -50,7 +50,7 @@ impl Screen for Screen8 {
         self.data[column as usize] = if high == 0 {
             current_value << shift
         } else {
-            current_value = current_value << shift;
+            current_value <<= shift;
             current_value |= high >> (6 - shift);
             current_value & MASK_6
         };
@@ -64,7 +64,7 @@ impl Screen for Screen8 {
         }
 
         for (mut id, row) in self.data.iter().enumerate() {
-            id = id + shift as usize;
+            id += shift as usize;
             new_data[if id > 49 { id - 50 } else { id }] += row & row_mask;
         }
 
@@ -115,7 +115,7 @@ impl Screen for Screen64 {
         self.data[row as usize] = if high == 0 {
             current_value << shift
         } else {
-            current_value = current_value << shift;
+            current_value <<= shift;
             current_value |= high >> (50 - shift);
             current_value & MASK_50
         };
@@ -134,7 +134,7 @@ impl Screen for Screen64 {
         }
 
         for (mut id, column) in self.data.iter().enumerate() {
-            id = id + shift as usize;
+            id += shift as usize;
             new_data[if id > 5 { id - 6 } else { id }] += column & column_mask;
         }
 

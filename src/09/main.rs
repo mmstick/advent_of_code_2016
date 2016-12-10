@@ -2,6 +2,8 @@
 extern crate alloc_system;
 extern crate time;
 
+use DecompressionToken::{Marker, Regular};
+
 const INPUT: &'static str = include_str!("input.txt");
 
 /// The base structure of the `Decompressor` `Iterator` contains the data as a
@@ -40,9 +42,7 @@ impl<'a> Iterator for Decompressor<'a> {
 
         // Chooses the correct loop to execute accordingly.
         if found_marker {
-            let mut start = self.read;
-            let mut charas = 0usize;
-            let mut found_first_num = false;
+            let (mut start, mut charas, mut found_first_num) = (self.read, 0, false);
 
             // First find the number of characters that will be repeated before
             // the first 'x', and then find the number of times to repeat
@@ -51,14 +51,14 @@ impl<'a> Iterator for Decompressor<'a> {
                 if found_first_num {
                     if character == ')' {
                         let repeat = self.data[start..self.read].parse::<u8>().unwrap();
-                        start = self.read + 1;
+                        start      = self.read + 1;
                         self.read += charas + 1;
-                        return Some(DecompressionToken::Marker(repeat, &self.data[start..start + charas]));
+                        return Some(Marker(repeat, &self.data[start..start + charas]));
                     }
                 } else if character == 'x' {
-                    charas = self.data[start..self.read].parse::<usize>().unwrap();
+                    charas          = self.data[start..self.read].parse::<usize>().unwrap();
                     found_first_num = true;
-                    start = self.read + 1;
+                    start           = self.read + 1;
                 }
                 self.read += 1;
             }
@@ -69,19 +69,16 @@ impl<'a> Iterator for Decompressor<'a> {
             // A `Regular` token ends when either a '(' is found or the
             // internal data has been exhausted.
             for character in self.data.chars().skip(self.read) {
-                if character == '(' {
-                    return Some(DecompressionToken::Regular(&self.data[start..self.read]));
-                }
+                if character == '(' { return Some(Regular(&self.data[start..self.read])); }
                 self.read += 1;
             }
-            Some(DecompressionToken::Regular(&self.data[start..]))
+            Some(Regular(&self.data[start..]))
         }
     }
 }
 
 /// Calculates the size of the file if it was using version one of the format.
 fn calculate_size_p1(input: &str) -> usize {
-    use DecompressionToken::{Marker, Regular};
     let mut decompressed_length = 0;
     for token in Decompressor::new(input) {
         match token {
@@ -94,7 +91,6 @@ fn calculate_size_p1(input: &str) -> usize {
 
 /// Calculates the actual version two file size of the decompressed file.
 fn calculate_size_p2(input: &str) -> usize {
-    use DecompressionToken::{Marker, Regular};
     let mut decompressed_length = 0;
     for token in Decompressor::new(input) {
         match token {
@@ -106,15 +102,16 @@ fn calculate_size_p2(input: &str) -> usize {
 }
 
 fn main() {
-    let begin = time::precise_time_ns();
-    let decompressed_length_p1 = calculate_size_p1(INPUT);
-    let decompressed_length_p2 = calculate_size_p2(INPUT);
-    let end = time::precise_time_ns();
+    let begin     = time::precise_time_ns();
+    let length_p1 = calculate_size_p1(INPUT);
+    let length_p2 = calculate_size_p2(INPUT);
+    let end       = time::precise_time_ns();
     println!("The decompressed length of version one is {} bytes ({} KiB)",
-        decompressed_length_p1, decompressed_length_p1 / 1024);
+        length_p1, length_p1 / 1024);
     println!("The decompressed length of version two is {} bytes ({} GiB)",
-        decompressed_length_p2, decompressed_length_p2 / 1024 / 1024 / 1024);
-    println!("Day 09: Execution Time: {} milliseconds", ((end - begin) as f64) / 1_000_000f64);
+        length_p2, length_p2 / 1024 / 1024 / 1024);
+    println!("Day 09: Execution Time: {} milliseconds",
+        ((end - begin) as f64) / 1_000_000f64);
 }
 
 #[test]
