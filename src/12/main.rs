@@ -1,17 +1,21 @@
 #![feature(alloc_system)]
 extern crate alloc_system;
+extern crate arrayvec;
 extern crate time;
+
+use arrayvec::ArrayVec;
+use std::iter::Enumerate;
+use std::str::Lines;
 
 const INPUT: &'static str = include_str!("input.txt");
 
 struct InstructionIter<'a> {
-    instructions: &'a str,
-    read:         usize
+    instructions: Enumerate<Lines<'a>>,
 }
 
 impl<'a> InstructionIter<'a> {
     fn new(input: &'a str) -> InstructionIter<'a> {
-        InstructionIter { instructions: input, read: 0 }
+        InstructionIter { instructions: input.lines().enumerate() }
     }
 }
 
@@ -57,88 +61,85 @@ fn char_to_index(input: char) -> usize { ((input as u8) - 97) as usize }
 impl<'a> Iterator for InstructionIter<'a> {
     type Item = Result<Instruction, InstructionErr<'a>>;
     fn next(&mut self) -> Option<Result<Instruction, InstructionErr<'a>>> {
-        let mut iterator = self.instructions.lines().enumerate()
-            .skip(self.read).map(|(line, x)| (line, x.split_whitespace()));
-        if let Some((line, mut element)) = iterator.next() {
-            self.read += 1;
-            let instruction = element.next().unwrap();
-            match instruction {
-                "cpy" => {
-                    let first = match element.next() {
-                        Some(element) => element,
-                        None => return Some(Err(InstructionErr::NoRegisterOrValue(line)))
-                    };
+        let (line, mut element) = match self.instructions.next() {
+            Some((line, instruction)) => (line, instruction.split_whitespace()),
+            None       => return None
+        };
+        let instruction = element.next().unwrap();
+        match instruction {
+            "cpy" => {
+                let first = match element.next() {
+                    Some(element) => element,
+                    None => return Some(Err(InstructionErr::NoRegisterOrValue(line)))
+                };
 
-                    let second = match element.next() {
-                        Some(element) => element,
-                        None => return Some(Err(InstructionErr::NoRegisterOrValue(line)))
-                    };
+                let second = match element.next() {
+                    Some(element) => element,
+                    None => return Some(Err(InstructionErr::NoRegisterOrValue(line)))
+                };
 
-                    match first.parse::<i64>() {
-                        Ok(value) => {
-                            let register = second.chars().next().unwrap();
-                            return if register.is_numeric() {
-                                Some(Err(InstructionErr::NoRegister(instruction, line)))
-                            } else {
-                                Some(Ok(Instruction::CopyInteger(value, char_to_index(register))))
-                            }
-                        }
-                        Err(_) => {
-                            let first = first.chars().next().unwrap();
-                            let second = second.chars().next().unwrap();
-                            return if first.is_numeric() || second.is_numeric() {
-                                Some(Err(InstructionErr::CopyRegisterToValue(line)))
-                            } else {
-                                Some(Ok(Instruction::CopyRegister(char_to_index(first), char_to_index(second))))
-                            }
+                match first.parse::<i64>() {
+                    Ok(value) => {
+                        let register = second.chars().next().unwrap();
+                        return if register.is_numeric() {
+                            Some(Err(InstructionErr::NoRegister(instruction, line)))
+                        } else {
+                            Some(Ok(Instruction::CopyInteger(value, char_to_index(register))))
                         }
                     }
-                },
-                "inc" => {
-                    let register = match element.next() {
-                        Some(register) => char_to_index(register.chars().next().unwrap()),
-                        None => return Some(Err(InstructionErr::NoRegister(instruction, line)))
-                    };
-                    
-                    return Some(Ok(Instruction::Increment(register)))
-                }, 
-                "dec" => {
-                    let register = match element.next() {
-                        Some(register) => char_to_index(register.chars().next().unwrap()),
-                        None => return Some(Err(InstructionErr::NoRegister(instruction, line)))
-                    };
+                    Err(_) => {
+                        let first = first.chars().next().unwrap();
+                        let second = second.chars().next().unwrap();
+                        return if first.is_numeric() || second.is_numeric() {
+                            Some(Err(InstructionErr::CopyRegisterToValue(line)))
+                        } else {
+                            Some(Ok(Instruction::CopyRegister(char_to_index(first), char_to_index(second))))
+                        }
+                    }
+                }
+            },
+            "inc" => {
+                let register = match element.next() {
+                    Some(register) => char_to_index(register.chars().next().unwrap()),
+                    None => return Some(Err(InstructionErr::NoRegister(instruction, line)))
+                };
+                
+                return Some(Ok(Instruction::Increment(register)))
+            }, 
+            "dec" => {
+                let register = match element.next() {
+                    Some(register) => char_to_index(register.chars().next().unwrap()),
+                    None => return Some(Err(InstructionErr::NoRegister(instruction, line)))
+                };
 
-                    return Some(Ok(Instruction::Decrement(register)))
-                },
-                "jnz" => {
-                    let kind = match element.next() {
-                        Some(kind) => match kind.parse::<i64>() {
-                            Ok(value) => Kind::Value(value),
-                            Err(_)    => Kind::Register(char_to_index(kind.chars().next().unwrap())),
-                        },
-                        None => return Some(Err(InstructionErr::NoRegister(instruction, line)))
-                    };
+                return Some(Ok(Instruction::Decrement(register)))
+            },
+            "jnz" => {
+                let kind = match element.next() {
+                    Some(kind) => match kind.parse::<i64>() {
+                        Ok(value) => Kind::Value(value),
+                        Err(_)    => Kind::Register(char_to_index(kind.chars().next().unwrap())),
+                    },
+                    None => return Some(Err(InstructionErr::NoRegister(instruction, line)))
+                };
 
-                    let back = match element.next().map(|x| x.parse::<i64>()) {
-                        Some(Ok(back)) => back,
-                        _ => return Some(Err(InstructionErr::JumpInvalid(line)))
-                    };
+                let back = match element.next().map(|x| x.parse::<i64>()) {
+                    Some(Ok(back)) => back,
+                    _ => return Some(Err(InstructionErr::JumpInvalid(line)))
+                };
 
-                   return Some(Ok(Instruction::JumpIf(kind, back)))
-                },
-                _ => return Some(Err(InstructionErr::InvalidInstruction(instruction, line)))
-            }
+                return Some(Ok(Instruction::JumpIf(kind, back)))
+            },
+            _ => return Some(Err(InstructionErr::InvalidInstruction(instruction, line)))
         }
-        None
     }
 }
 
-fn instruction_optimizer(input: &str) -> Vec<Instruction> {
-    let instructions = InstructionIter::new(input);
-    let mut output = Vec::with_capacity(32);
+fn instruction_optimizer(input: &str) -> ArrayVec<[Instruction; 32]> {
+    let mut output: ArrayVec<[Instruction; 32]> = ArrayVec::new();
     let mut matched = 0;
     let (mut inc_reg, mut dec_reg) = (0, 0);
-    for instruction in instructions {
+    for instruction in InstructionIter::new(input) {
         match instruction {
             Ok(instruction) => match instruction {
                 Instruction::Increment(register) if matched == 0 => {
